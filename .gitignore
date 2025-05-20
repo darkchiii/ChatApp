@@ -1,0 +1,49 @@
+# === Python / Django ===
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pdb
+
+# Virtualenv / venv
+.env
+.venv/
+venv/
+ENV/
+env/
+*.env
+Pipfile.lock
+
+# Django
+*.sqlite3
+db.sqlite3
+*.log
+
+# Migrations (cache)
+**/migrations/__pycache__/
+**/migrations/*.pyc
+
+# Static / media files (generated)
+static/
+staticfiles/
+media/
+
+# Test / coverage
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# === IDE / System ===
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# === Docker ===
+*.local
+docker-compose.override.yml
+.docker/
+
+.dev
