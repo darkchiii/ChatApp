@@ -22,7 +22,6 @@ class RoomViewSet(viewsets.ViewSet):
             serializer = RoomSerializer(user_rooms, many=True)
             # print("list rooms: ", serializer.data)
             # print(request.data)
-            #Zobaczyc co zwraca serializer
             return Response(serializer.data, status=200)
         return Response({"error": "You don't have any chats :("}, status=status.HTTP_404_NOT_FOUND)
 
@@ -70,6 +69,7 @@ class RoomViewSet(viewsets.ViewSet):
         except Room.DoesNotExist:
             return Response({"error": "Room doesn't exist!"}, status=status.HTTP_404_NOT_FOUND)
 
+    # List last 50 messages from room
     @action(detail=True, methods=["get"], url_name='messages', url_path='messages') #rooms/pk/messages
     def messages(self, request, pk=None):
         try:
@@ -78,13 +78,14 @@ class RoomViewSet(viewsets.ViewSet):
                 return Response({"error": "Not authorized."}, status=status.HTTP_401_UNAUTHORIZED)
 
             redis_conn = get_redis_connection("default")
-
             cache_key = f'messages_room_{pk}'
             raw_messages = redis_conn.lrange(cache_key, 0, 49)
+
             if raw_messages:
                 print("Cache hit")
                 messages = [json.loads(m) for m in raw_messages]
                 return Response(messages, status=status.HTTP_200_OK)
+
             print("Cache miss")
             messages = Message.objects.filter(room=room.id).order_by('-time')[:50][::-1]
             serializer = MessageSerializer(messages, many=True)
@@ -124,27 +125,3 @@ class MessageViewSet(viewsets.ViewSet):
         except Room.DoesNotExist:
             return Response({"error": "Room not found"}, status=status.HTTP_404_NOT_FOUND)
 
-    #List last 50 messages from room
-    # def list(self, request, pk):
-        # try:
-        #     room = Room.objects.get(id=pk)
-
-        #     if room.user1 != request.user and room.user2 != request.user:
-        #         return Response({"error": "Not authorized."}, status=status.HTTP_401_UNAUTHORIZED)
-
-        #     cache_key = f'messages_room_{pk}'
-        #     cached_data = cache.get(cache_key)
-        #     if cached_data:
-        #         print("Cache hit")
-        #         return Response(cached_data, status=status.HTTP_200_OK)
-
-
-        #     print("Cache miss")
-        #     messages = Message.objects.filter(room=room.id)
-        #     serializer = MessageSerializer(messages, many=True)
-        #     cache.set(cache_key, serializer.data, 60*15)
-
-        #     return Response(serializer.data, status=200)
-
-        # except Room.DoesNotExist:
-        #     return Response({"error": "Room doesn't exist!"}, status=status.HTTP_404_NOT_FOUND)

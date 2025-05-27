@@ -8,5 +8,4 @@ router.register(r'messages', MessageViewSet, basename='messages')
 
 urlpatterns = [
     path('api/', include(router.urls)),
-    # path('api/room/<:pk>/messages', RoomViewSet.mess)
 ]
