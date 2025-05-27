@@ -4,7 +4,7 @@ from ..models import Message, Room
 from django.contrib.auth.models import User
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.urls import reverse
-
+from django.core.cache import cache
 
 @pytest.mark.django_db
 class TestCreateMessage:
@@ -28,6 +28,23 @@ class TestCreateMessage:
         print(response.data)
         assert response.status_code == 201
 
+# @pytest.mark.django_db
+# class TestListMessage:
+#     @pytest.fixture(autouse=True)
+#     def setup(self):
+#         self.client = APIClient()
+#         self.test_user1 = User.objects.create_user(username="user1", password="secret1")
+#         self.test_user2 = User.objects.create_user(username="user2", password="secret2")
+#         self.test_room = Room.objects.create(user1=self.test_user1, user2=self.test_user2)
+#         self.message = Message.objects.create(content="New message!", room=self.test_room, sender=self.test_user1)
+#         token = RefreshToken.for_user(self.test_user1)
+#         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {str(token.access_token)}')
+#         self.url_list = reverse('messages-list')
+
+#     def test_cache_is_set(self):
+#         response = self.client.get(self.url_list, self.test_room.pk)
+#         cached = cache.get(f"messages_room_{self.test_room.pk}")
+#         assert cached is not None
 
 
 
