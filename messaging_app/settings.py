@@ -48,6 +48,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # 'chat.middleware.RateLimitMiddleware',
+
 ]
 
 REST_FRAMEWORK = {
@@ -57,6 +59,12 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    'DEFAULT_THROTTLE_CLASSES': [
+        'chat.throttling.MessageRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'message_send': '60/m',
+    }
 }
 
 REDIS_HOST = 'localhost'

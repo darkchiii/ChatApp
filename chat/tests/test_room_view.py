@@ -172,6 +172,7 @@ class TestCacheMessages:
 
     def test_create_message_first_in_cache(self):
         self.url_list_post = reverse('messages-list')
+        cache.delete(f"throttle_user_{self.test_user1.id}")
 
         redis_conn = get_redis_connection("default")
         data = {
@@ -187,7 +188,3 @@ class TestCacheMessages:
 
         assert first_cached_message["content"] == data["content"]
         assert first_cached_message["room"] == data["room"]
-        # cached = redis_conn(f"messages_room_{self.test_room.pk}", 0, 49)
-
-        # print(cached)
-
