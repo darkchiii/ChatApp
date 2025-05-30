@@ -60,11 +60,11 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     'DEFAULT_THROTTLE_CLASSES': [
-        'chat.throttling.MessageRateThrottle',
+        'chat.throttling.MessageSendLimiter',
     ],
-    'DEFAULT_THROTTLE_RATES': {
-        'message_send': '60/m',
-    }
+    # 'DEFAULT_THROTTLE_RATES': {
+    #     'message_send': '1/s',
+    # }
 }
 
 REDIS_HOST = 'localhost'

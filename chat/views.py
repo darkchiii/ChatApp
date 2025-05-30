@@ -10,7 +10,7 @@ from django.core.cache import cache
 from rest_framework.decorators import action
 import json
 from django_redis import get_redis_connection
-from .throttling import MessageRateThrottle
+from .throttling import MessageSendLimiter
 
 class RoomViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
@@ -101,7 +101,7 @@ class RoomViewSet(viewsets.ViewSet):
 
 class MessageViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
-    throttle_classes = [MessageRateThrottle]
+    throttle_classes = [MessageSendLimiter]
 
     def create(self, request):
         print(request.data)

@@ -1,35 +1,37 @@
-from rest_framework.throttling import SimpleRateThrottle
+import time
+import redis
+from rest_framework.throttling import SimpleRateThrottle, BaseThrottle
 from django.core.cache import cache
 from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer
 from rest_framework import status
+from django_redis import get_redis_connection
 
-class MessageRateThrottle(SimpleRateThrottle):
-    # RATE_LIMIT = 5
-    # TIME_PERIOD = 10
+# Uses sliding window algorithm
+class MessageSendLimiter(BaseThrottle):
+    RATE_LIMIT = 3
+    TIME_WINDOW = 5
+    # scope = 'message_send'
 
-    # def get_cache_key(self, request, view):
-    #     if request.user and request.user.is_authenticated:
-    #         return f'throttle_user_{request.user.id}'
+    def allow_request(self, request, view):
 
-    # def allow_request(self, request, view):
-    #     cache_key = self.get_cache_key(request, view)
-    #     if cache_key is None:
-    #         return True
+        if not request.user or not request.user.is_authenticated:
+            return None
 
-    #     added = cache.add(cache_key, 1, timeout=self.TIME_PERIOD)
+        redis_conn = get_redis_connection("default")
+        key = f'throttle_user_{request.user.id}'
 
-    #     if not added:
-    #         count = cache.incr(cache_key)
+        now = time.time()
 
-    #         if count > self.RATE_LIMIT:
-    #             return False
-    #     return True
-    # rate = '1/s'
-    scope = 'message_send'
+        start_window = now - self.TIME_WINDOW
+        redis_conn.zremrangebyscore(key, 0, start_window)
+        count = redis_conn.zcard(key)
 
-    def get_cache_key(self, request, view):
-        if request.user and request.user.is_authenticated:
-            key = f"throttle_user_{request.user.id}"
-        print("Throttle key", key)
-        return key
+        if count < self.RATE_LIMIT:
+            redis_conn.zadd(key, {str(now): now})
+            return True
+        return False
+
+    #ZREMRANGEBYSCORE - usuwa elementy poza oknem czasu, key - user, min-max - usuwa wszytsko poniedzy
+    # ZCARD - sprawdza ile wpisow jest w oknie dla danego user
+    # jeśli mniej niz limit - wpuszcza, jesli limit przekroczony 429

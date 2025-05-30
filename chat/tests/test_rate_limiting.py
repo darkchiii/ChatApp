@@ -4,7 +4,7 @@ from rest_framework.test import APIClient
 from django.contrib.auth.models import User
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.urls import reverse
-from django.core.cache import cache
+from django_redis import get_redis_connection
 
 @pytest.mark.django_db
 class TestRateLimiting:
@@ -21,16 +21,17 @@ class TestRateLimiting:
     def test_rate_limiting(self):
         token = RefreshToken.for_user(self.test_user1)
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {str(token.access_token)}')
+        redis_conn = get_redis_connection("default")
 
         key = f"throttle_user_{self.test_user1.id}"
+        redis_conn.delete(key)
 
-        cache.delete(key)
         for i in range(3):
             response = self.client.post(self.url_list, {"content": "Message !!",
                                                    "room": self.test_room.id})
-            print("Request: ", i+1, "Response: ", response.status_code, "timestamp: ", cache.get(key))
+            timestamps = redis_conn.zrange(key, 0, -1, withscores=True)
+            print("Request: ", i+1, "Response: ", response.status_code, "timestamp: ", timestamps)
 
-        count = cache.get(key)
-        # print("Wartośc cache, timestamps: ", count)
-        assert isinstance(count, list)
-        assert len(count) == 3
+
+        count = redis_conn.zcard(key)
+        assert count == 3
