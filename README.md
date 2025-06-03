@@ -66,6 +66,6 @@ What I want to deeply understand during the process:
 - Swagger or Redoc documentation
 - Dockerized deployment with Compose
 
-Feel free to check out the `throttling`, `views`, and `tests` modules for more implementation details.
+Feel free to check out the `throttling`, `views`, and `tests` modules inside chat directory for more implementation details.
 
 README will be updated as the project progresses.
