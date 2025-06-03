@@ -11,7 +11,6 @@ from django_redis import get_redis_connection
 class MessageSendLimiter(BaseThrottle):
     RATE_LIMIT = 3
     TIME_WINDOW = 5
-    # scope = 'message_send'
 
     def allow_request(self, request, view):
 
@@ -32,6 +31,6 @@ class MessageSendLimiter(BaseThrottle):
             return True
         return False
 
-    #ZREMRANGEBYSCORE - usuwa elementy poza oknem czasu, key - user, min-max - usuwa wszytsko poniedzy
+    # ZREMRANGEBYSCORE - usuwa elementy poza oknem czasu, key - user, min-max - usuwa wszytsko poniedzy
     # ZCARD - sprawdza ile wpisow jest w oknie dla danego user
     # jeśli mniej niz limit - wpuszcza, jesli limit przekroczony 429
