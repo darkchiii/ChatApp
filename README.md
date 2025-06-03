@@ -21,7 +21,7 @@ What I want to deeply understand during the process:
 
 ## Tools & Concepts to explore
 
-| Concept                    |                                                      |
+| Concept                    |                                                                     |
 |---------------------------|----------------------------------------------------------------------|
 | **Redis**                 | Fast in-memory caching and custom rate limiting                      |
 | **RabbitMQ / Kafka**      | Queue systems for background processing (e.g., async email jobs)      |
@@ -65,6 +65,7 @@ What I want to deeply understand during the process:
 - Logging message delivery latency and user behavior
 - Swagger or Redoc documentation
 - Dockerized deployment with Compose
+
 
 Feel free to check out the `throttling`, `views`, and `tests` modules inside chat directory for more implementation details.
 

@@ -8,12 +8,13 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username']
 
 class RoomSerializer(serializers.ModelSerializer):
-    user1 = serializers.PrimaryKeyRelatedField(read_only=True)
+    user1 = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    user1_readable = serializers.PrimaryKeyRelatedField(source='user1', read_only=True)
     user2 = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
 
     class Meta:
         model = Room
-        fields = ['id', 'user1', 'user2', 'name']
+        fields = ['id', 'user1', 'user1_readable', 'user2', 'name']
 
 class MessageSerializer(serializers.ModelSerializer):
     sender = serializers.ReadOnlyField(source='sender.username')

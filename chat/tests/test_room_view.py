@@ -23,7 +23,8 @@ class TestListRoom:
         token = RefreshToken.for_user(self.test_user1)
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {str(token.access_token)}')
         response = self.client.get(self.url_list)
-        assert response.data[0]['user1'] == self.test_user1.id
+        assert response.data[0]['user1_readable'] == self.test_user1.id
+
         assert response.data[0]['user2'] == self.test_user2.id
         assert response.data[0]['name'] == "Chat"
 
@@ -32,7 +33,7 @@ class TestListRoom:
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {str(token.access_token)}')
         response = self.client.get(self.url_list)
         assert response.status_code == 200
-        assert response.data[0]['user1'] == self.test_user1.id
+        assert response.data[0]['user1_readable'] == self.test_user1.id
         assert response.data[0]['user2'] == self.test_user2.id
 
     def test_room_list_not_authenticated(self):
@@ -92,7 +93,6 @@ class TestCreateRoom:
         token = RefreshToken.for_user(self.test_user1)
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {str(token.access_token)}')
         data = {
-            # "user1": self.test_user1.id,
             "user2": self.test_user1.id
         }
         response = self.client.post(self.url_list, data)
