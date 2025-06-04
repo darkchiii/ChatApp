@@ -11,6 +11,7 @@ from rest_framework.decorators import action
 import json
 from django_redis import get_redis_connection
 from .throttling import MessageSendLimiter
+from .tasks import notify_user_new_message
 
 class RoomViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
@@ -115,6 +116,11 @@ class MessageViewSet(viewsets.ViewSet):
             if serializer.is_valid():
                 redis_conn = get_redis_connection("default")
                 message = serializer.save(sender=sender)
+
+                notify_user_new_message.delay(
+                    sender_id = message.sender.id,
+                    reciever_id = message.room.user1.id if sender.id==room.user2.id else message.room.user2.id,
+                    message_text = message.content)
 
                 json_string = json.dumps(MessageSerializer(message).data)
                 redis_conn.lpush(f'messages_room_{room_id}', json_string)

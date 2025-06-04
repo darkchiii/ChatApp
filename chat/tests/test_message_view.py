@@ -7,7 +7,6 @@ from django.urls import reverse
 from django.core.cache import cache
 from django_redis import get_redis_connection
 
-
 @pytest.mark.django_db
 class TestCreateMessage:
     @pytest.fixture(autouse=True)
@@ -28,3 +27,15 @@ class TestCreateMessage:
         response = self.client.post(self.url_list, data)
         # print(response.data)
         assert response.status_code == 201
+
+    def test_send_empty_message(self):
+        token = RefreshToken.for_user(self.test_user1)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {str(token.access_token)}')
+        data = {
+            "content": "",
+            "room": self.test_room.id
+        }
+        response = self.client.post(self.url_list, data)
+        # print(f"Send empty message status code: ", response.status_code)
+        assert response.status_code == 400
+
