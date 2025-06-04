@@ -11,7 +11,6 @@ from django_redis import get_redis_connection
 class MessageSendLimiter(BaseThrottle):
     RATE_LIMIT = 3
     TIME_WINDOW = 5
-
     def allow_request(self, request, view):
 
         if not request.user or not request.user.is_authenticated:

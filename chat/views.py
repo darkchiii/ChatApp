@@ -1,9 +1,13 @@
+from datetime import timedelta
+from redis import Redis
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import render
 from django.db.models import Q
 from django.contrib.auth.models import User
+
+from messaging_app import settings
 from .models import Room, Message
 from .serializers import RoomSerializer, MessageSerializer
 from django.core.cache import cache
@@ -11,7 +15,7 @@ from rest_framework.decorators import action
 import json
 from django_redis import get_redis_connection
 from .throttling import MessageSendLimiter
-from .tasks import notify_user_new_message
+from .tasks import notify_user_new_message, send_email_notification
 
 class RoomViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
@@ -108,8 +112,21 @@ class MessageViewSet(viewsets.ViewSet):
         print(request.data)
         room_id = request.data.get('room')
         sender = request.user
+        # reciever_id = message.room.user1.id if sender.id==room.user2.id else message.room.user2.id
+
+        r = Redis(
+        host=settings.REDIS_HOST,
+        port=settings.REDIS_PORT,
+        db=0,
+        decode_responses=True
+        )
+        # redis_key = f"send_email_user_{reciever_id}"
+
         try:
             room = Room.objects.get(id = room_id)
+            reciever_id = room.user1.id if sender.id==room.user2.id else room.user2.id
+            redis_key = f"send_email_user_{reciever_id}"
+
             if room.user1 != sender and room.user2 != sender:
                 return Response({"error": "Not authorized."}, status=status.HTTP_401_UNAUTHORIZED)
             serializer = MessageSerializer(data=request.data)
@@ -119,8 +136,16 @@ class MessageViewSet(viewsets.ViewSet):
 
                 notify_user_new_message.delay(
                     sender_id = message.sender.id,
-                    reciever_id = message.room.user1.id if sender.id==room.user2.id else message.room.user2.id,
+                    reciever_id = reciever_id,
                     message_text = message.content)
+                if r.exists(redis_key):
+                    print("Mail already sent, skipping task")
+                    return Response({"status": "Skipped, already sent recently"}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+                else:
+                    send_email_notification.delay(reciever_id,
+                                                message_text = message.content
+                                                )
+                    r.set(redis_key, "send", ex=timedelta(minutes=30))
 
                 json_string = json.dumps(MessageSerializer(message).data)
                 redis_conn.lpush(f'messages_room_{room_id}', json_string)

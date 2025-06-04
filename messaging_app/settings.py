@@ -67,6 +67,15 @@ REST_FRAMEWORK = {
     # }
 }
 
+EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = "email@gmail.com"
+EMAIL_HOST_PASSWORD = "emailpass"
+DEFAULT_FROM_EMAIL = "Chat App <noreply@chatapp.com>"
+
+
 REDIS_HOST = 'localhost'
 REDIS_PORT = 6379
 
