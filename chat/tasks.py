@@ -5,30 +5,33 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.core.mail import send_mail
 from redis import Redis
-
 from messaging_app import settings
 
-
-@shared_task
-def notify_user_new_message(sender_id, reciever_id, message_text):
+@shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_kwargs={"max_retries": 3})
+def notify_user_new_message(self, sender_id, reciever_id, message_text):
     try:
         sender = User.objects.get(pk = sender_id)
         reciever = User.objects.get(pk=reciever_id)
+
+        if reciever.username == "fail":
+            raise Exception("Testowy wyjątek – symulacja błędu")
+
+        result = {
+            "status": f"New Message! {sender.username} sent message to {reciever.username}: {message_text}",
+            "code": 200
+        }
+        print(result)
+        return result
+
     except User.DoesNotExist:
         return {"status": "User object does not exist", "code": 404}
 
-    print(f"Masz wiadomość! {sender.username} wysłał wiadomość {reciever.username}: {message_text}")
+    except Exception as e:
+        print(f"Retry error: {e}")
+        raise
 
-
-@shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={"max_retries": 3})
+@shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_kwargs={"max_retries": 3})
 def send_email_notification(self, user_id, message_text):
-    # r = Redis(
-    # host=settings.REDIS_HOST,
-    # port=settings.REDIS_PORT,
-    # db=0,
-    # decode_responses=True
-    # )
-    # redis_key = f"send_email_user_{user_id}"
     try:
         user = User.objects.get(pk=user_id)
     except User.DoesNotExist:
@@ -37,15 +40,10 @@ def send_email_notification(self, user_id, message_text):
     if not user.email:
         return {"status": "User has no email", "code": 400}
 
-    # if r.exists(redis_key):
-        # print("Mail already sent, skipping task")
-        # return {"status": "Skipped, already sent recently", "code": 429}
-    # else:
     send_mail(
             subject="New message waits for you!",
             message=message_text,
             from_email="noreply@chatapp.com",
             recipient_list=[user.email],
         )
-        # r.set(redis_key, "send", ex=timedelta(minutes=30))
     return {"status": "Email sent", "code": 200}

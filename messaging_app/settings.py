@@ -48,8 +48,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # 'chat.middleware.RateLimitMiddleware',
-
 ]
 
 REST_FRAMEWORK = {
@@ -62,9 +60,6 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_CLASSES': [
         'chat.throttling.MessageSendLimiter',
     ],
-    # 'DEFAULT_THROTTLE_RATES': {
-    #     'message_send': '1/s',
-    # }
 }
 
 EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
@@ -81,17 +76,17 @@ REDIS_PORT = 6379
 
 CACHES = {
     "default": {
-        "BACKEND": "django_redis.cache.RedisCache",  # mówi Django: użyj RedisCache
-        "LOCATION": "redis://127.0.0.1:6379/1",       # Redis działa na tym porcie/bazie
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1",
         "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",  # podstawowy klient
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
         }
     }
 }
 CACHE_TTL = 60 * 20 # time to live = 20 minutes
 
-CELERY_BROKER_URL = 'redis://localhost:6379/0'
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_BROKER_URL = "amqp://guest:guest@localhost:5672//"
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/1' # or None if no need to save results
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 

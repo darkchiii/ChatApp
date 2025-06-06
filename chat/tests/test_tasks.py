@@ -129,3 +129,15 @@ class TestTasks:
 
         assert Message.objects.count() == 2
         assert mock_notify.call_count == 1
+
+    # @patch("chat.tasks.User.objects.get")
+    # def test_notify_user_retry(mock_get, celery_worker):
+    #     mock_get.side_effect = Exception("Błąd testowy")
+    #     print("Mock działa: ", mock_get)
+
+    #     result = notify_user_new_message.apply(args=[1, 2, "Hello!"])
+
+    #     print("result", result.result)
+    #     print("traceback", result.traceback)
+    #     assert result.failed()
+    #     assert result.traceback  # czyli był wyjątek
