@@ -97,6 +97,7 @@ class RoomViewSet(viewsets.ViewSet):
             serializer = MessageSerializer(messages, many=True)
             for message in serializer.data:
                 redis_conn.lpush(cache_key, json.dumps(message))
+                redis_conn.expire(cache_key, 86400)
             redis_conn.ltrim(cache_key, 0, 49)
             return Response(serializer.data, status=200)
 

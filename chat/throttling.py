@@ -32,4 +32,4 @@ class MessageSendLimiter(BaseThrottle):
 
     # ZREMRANGEBYSCORE - usuwa elementy poza oknem czasu, key - user, min-max - usuwa wszytsko poniedzy
     # ZCARD - sprawdza ile wpisow jest w oknie dla danego user
-    # jeśli mniej niz limit - wpuszcza, jesli limit przekroczony 429
+    # jeśli mniej niz limit - wpuszcza, jesli limit przekroczony - 429

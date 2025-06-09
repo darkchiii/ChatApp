@@ -130,14 +130,35 @@ class TestTasks:
         assert Message.objects.count() == 2
         assert mock_notify.call_count == 1
 
-    # @patch("chat.tasks.User.objects.get")
-    # def test_notify_user_retry(mock_get, celery_worker):
-    #     mock_get.side_effect = Exception("Błąd testowy")
-    #     print("Mock działa: ", mock_get)
+    @patch("chat.tasks.send_mail", side_effect=Exception("SMTP failed"))
+    def test_send_email_retry_on_exception(self, mock_send_mail):
+        with pytest.raises(Exception):
+            send_email_notification(self.test_user1.id, "Retry me")
 
-    #     result = notify_user_new_message.apply(args=[1, 2, "Hello!"])
+        assert mock_send_mail.called
 
-    #     print("result", result.result)
-    #     print("traceback", result.traceback)
-    #     assert result.failed()
-    #     assert result.traceback  # czyli był wyjątek
+    def test_notify_user_forced_retry(self):
+        test_user_fail = User.objects.create_user(username="fail", email="fail@mail.com", password="fail123")
+        with pytest.raises(Exception):
+            notify_user_new_message(self.test_user1.id, test_user_fail.id, "force retry")
+
+    def test_notify_user_does_not_exist_no_retry(self):
+        response = notify_user_new_message(9999, 99999, "will not retry")
+        assert response["code"] == 404
+
+    def test_send_email_user_does_not_exist(self):
+        response = send_email_notification(9999, "should not retry")
+        assert response["code"] == 404
+
+    @patch("chat.tasks.notify_user_new_message.apply_async")
+    def test_notify_user_delayed_execution(self, mock_async):
+        notify_user_new_message.apply_async(
+            args=[self.test_user1.id, self.test_user2.id, "Delayed"],
+            countdown=10
+        )
+        mock_async.assert_called_once()
+
+    def test_task_apply_direct_success(self):
+        result = notify_user_new_message.apply(args=[self.test_user1.id, self.test_user2.id, "Inline test"])
+        assert result.successful()
+        assert result.result["code"] == 200
