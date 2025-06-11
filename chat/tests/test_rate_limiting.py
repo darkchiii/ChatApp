@@ -30,7 +30,7 @@ class TestRateLimiting:
             response = self.client.post(self.url_list, {"content": "Message !!",
                                                    "room": self.test_room.id})
             timestamps = redis_conn.zrange(key, 0, -1, withscores=True)
-            print("Request: ", i+1, "Response: ", response.status_code, "timestamp: ", timestamps)
+            # print("Request: ", i+1, "Response: ", response.status_code, "timestamp: ", timestamps)
 
 
         count = redis_conn.zcard(key)

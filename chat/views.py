@@ -1,4 +1,5 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
+from django.utils import timezone
 from redis import Redis
 from rest_framework import viewsets, status
 from rest_framework.response import Response
@@ -19,6 +20,7 @@ from .tasks import notify_user_new_message, send_email_notification
 
 class RoomViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
+
     # List logged in user rooms
     def list(self, request):
         user = request.user
@@ -79,31 +81,54 @@ class RoomViewSet(viewsets.ViewSet):
     @action(detail=True, methods=["get"], url_name='messages', url_path='messages') #rooms/pk/messages
     def messages(self, request, pk=None):
         try:
+            print("Request path: ", request.path)
+
             room = Room.objects.get(id=pk)
             if room.user1 != request.user and room.user2 != request.user:
                 return Response({"error": "Not authorized."}, status=status.HTTP_401_UNAUTHORIZED)
 
             redis_conn = get_redis_connection("default")
-            cache_key = f'messages_room_{pk}'
-            raw_messages = redis_conn.lrange(cache_key, 0, 49)
+            cache_key = f"messages_room_{pk}"
 
-            if raw_messages:
+            messages_to_read = Message.objects.filter(room=room, is_read = False).exclude(sender=request.user)
+            print('Messages to read: ', messages_to_read)
+
+            if messages_to_read.exists():
+                messages_to_read.update(is_read = True, time_read = timezone.now())
+                print("Updating and invalidating cache...")
+                redis_conn.delete(cache_key)
+
+                messages = Message.objects.filter(room=room).order_by('-time')[:50][::-1]
+                serializer = MessageSerializer(messages, many=True)
+
+                for message in serializer.data:
+                    redis_conn.lpush(cache_key, json.dumps(message))
+                    redis_conn.expire(cache_key, 86400)
+                redis_conn.ltrim(cache_key, 0, 49)
+
+                return Response(serializer.data, status=200)
+
+            cache_messages = redis_conn.lrange(cache_key, 0, 49)
+
+            if cache_messages:
                 print("Cache hit")
-                messages = [json.loads(m) for m in raw_messages]
+                messages = [json.loads(m) for m in cache_messages]
                 return Response(messages, status=status.HTTP_200_OK)
 
             print("Cache miss")
-            messages = Message.objects.filter(room=room.id).order_by('-time')[:50][::-1]
+            messages = Message.objects.filter(room=room).order_by('-time')[:50][::-1]
             serializer = MessageSerializer(messages, many=True)
+            print('Serializer: ', serializer.data)
+
             for message in serializer.data:
                 redis_conn.lpush(cache_key, json.dumps(message))
                 redis_conn.expire(cache_key, 86400)
             redis_conn.ltrim(cache_key, 0, 49)
+
             return Response(serializer.data, status=200)
 
         except Room.DoesNotExist:
             return Response({"error": "Room doesn't exist!"}, status=status.HTTP_404_NOT_FOUND)
-
 
 class MessageViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
@@ -113,7 +138,6 @@ class MessageViewSet(viewsets.ViewSet):
         print(request.data)
         room_id = request.data.get('room')
         sender = request.user
-        # reciever_id = message.room.user1.id if sender.id==room.user2.id else message.room.user2.id
 
         r = Redis(
         host=settings.REDIS_HOST,
@@ -121,7 +145,6 @@ class MessageViewSet(viewsets.ViewSet):
         db=0,
         decode_responses=True
         )
-        # redis_key = f"send_email_user_{reciever_id}"
 
         try:
             room = Room.objects.get(id = room_id)
@@ -141,7 +164,6 @@ class MessageViewSet(viewsets.ViewSet):
                     message_text = message.content)
                 if r.exists(redis_key):
                     print("Mail already sent, skipping task")
-                    return Response({"status": "Skipped, already sent recently"}, status=status.HTTP_429_TOO_MANY_REQUESTS)
                 else:
                     send_email_notification.delay(reciever_id,
                                                 message_text = message.content
