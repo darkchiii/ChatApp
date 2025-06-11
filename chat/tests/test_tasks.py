@@ -8,7 +8,7 @@ from ..models import Room, Message
 from django.contrib.auth.models import User
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.urls import reverse
-from ..tasks import notify_user_new_message, send_email_notification
+from ..tasks import notify_user_new_message, send_email_notification, notify_user_unread_messages
 from django.core.exceptions import ObjectDoesNotExist
 from django.core import mail
 
@@ -162,3 +162,30 @@ class TestTasks:
         result = notify_user_new_message.apply(args=[self.test_user1.id, self.test_user2.id, "Inline test"])
         assert result.successful()
         assert result.result["code"] == 200
+
+    def test_notify_user_with_unread_messages(self, caplog):
+        user1 = User.objects.create_user(username="alice", password="test")
+        user2 = User.objects.create_user(username="anna", password="test")
+        room = Room.objects.create(user1=user1, user2=user2)
+
+        Message.objects.create(content="Hi!", room=room, sender=user2, is_read=False)
+
+        with caplog.at_level("WARNING"):
+            notify_user_unread_messages()
+
+        assert "[alice] You have 1 unread messages." in caplog.text
+        assert "[anna]" not in caplog.text
+
+    @pytest.mark.django_db
+    def test_notify_user_with_no_unread_messages(self, caplog):
+        user1 = User.objects.create_user(username="charlie", password="test")
+        user2 = User.objects.create_user(username="daria", password="test")
+        room = Room.objects.create(user1=user1, user2=user2)
+
+        Message.objects.create(content="Hello!", room=room, sender=user2, is_read=True)
+
+        with caplog.at_level("WARNING"):
+            notify_user_unread_messages()
+
+        assert "[charlie]" not in caplog.text
+        assert "[daria]" not in caplog.text

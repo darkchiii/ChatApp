@@ -207,24 +207,24 @@ class TestCacheMessages:
         # print("test cache is set", cached)
         assert cached
 
-    # def test_create_message_first_in_cache(self):
-    #     self.url_list_post = reverse('messages-list')
-    #     # cache.delete(f"throttle_user_{self.test_user1.id}")
+    def test_create_message_first_in_cache(self):
+        self.url_list_post = reverse('messages-list')
+        # cache.delete(f"throttle_user_{self.test_user1.id}")
 
-    #     redis_conn = get_redis_connection("default")
-    #     redis_conn.delete(f"throttle_user_{self.test_user1.id}")
+        redis_conn = get_redis_connection("default")
+        redis_conn.delete(f"throttle_user_{self.test_user1.id}")
 
 
-    #     data = {
-    #         "content": "Testing if new message first in cache",
-    #         "room": self.test_room.id,
-    #     }
-    #     response = self.client.post(self.url_list_post, data)
-    #     assert response.status_code == 201
-    #     cached_raw = redis_conn.lrange(f"messages_room_{self.test_room.pk}", 0, 0)
-    #     assert cached_raw
+        data = {
+            "content": "Testing if new message first in cache",
+            "room": self.test_room.id,
+        }
+        response = self.client.post(self.url_list_post, data)
+        assert response.status_code == 201
+        cached_raw = redis_conn.lrange(f"messages_room_{self.test_room.pk}", 0, 0)
+        assert cached_raw
 
-    #     first_cached_message = json.loads(cached_raw[0].decode())
+        first_cached_message = json.loads(cached_raw[0].decode())
 
-    #     assert first_cached_message["content"] == data["content"]
-    #     assert first_cached_message["room"] == data["room"]
+        assert first_cached_message["content"] == data["content"]
+        assert first_cached_message["room"] == data["room"]

@@ -6,6 +6,10 @@ from rest_framework import status
 from django.core.mail import send_mail
 from redis import Redis
 from messaging_app import settings
+from .models import Message, Room
+from django.db.models import Q
+import logging
+logger = logging.getLogger(__name__)
 
 @shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_kwargs={"max_retries": 3})
 def notify_user_new_message(self, sender_id, reciever_id, message_text):
@@ -14,7 +18,7 @@ def notify_user_new_message(self, sender_id, reciever_id, message_text):
         reciever = User.objects.get(pk=reciever_id)
 
         if reciever.username == "fail":
-            raise Exception("Testowy wyjątek – symulacja błędu")
+            raise Exception("Error simulation")
 
         result = {
             "status": f"New Message! {sender.username} sent message to {reciever.username}: {message_text}",
@@ -29,6 +33,20 @@ def notify_user_new_message(self, sender_id, reciever_id, message_text):
     except Exception as e:
         print(f"Retry error: {e}")
         raise
+
+@shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_kwargs={"max_retries": 3})
+def notify_user_unread_messages(self):
+    users = User.objects.all()
+
+    for u in users:
+        rooms = Room.objects.filter(Q(user1 = u) | Q(user2= u))
+        unread_messages = 0
+        for r in rooms:
+            count = Message.objects.filter(room=r, is_read=False).exclude(sender=u).count()
+            unread_messages += count
+        if unread_messages > 0:
+            logger.warning(f"[{u.username}] You have {unread_messages} unread messages.")
+
 
 @shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_kwargs={"max_retries": 3})
 def send_email_notification(self, user_id, message_text):

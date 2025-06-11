@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'chat',
     'user',
     'django_extensions',
+    'django_celery_beat',
 ]
 
 MIDDLEWARE = [
@@ -89,6 +90,8 @@ CELERY_BROKER_URL = "amqp://guest:guest@localhost:5672//"
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/1' # or None if no need to save results
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
 
 
 ROOT_URLCONF = 'messaging_app.urls'
